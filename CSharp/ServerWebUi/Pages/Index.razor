@@ -1,0 +1,99 @@
+﻿@page "/"
+@page "/box/{Guid:guid}"
+@using MatBlazor
+@using System.Net.Mime
+@using System.IO
+@using BoxProtocol
+@using Grpc.Core
+@using MagicOnion.Client
+<h1>Test Shop</h1>
+
+@code
+{
+    [Parameter]
+    public Guid Guid { get; set; }
+
+    public string Id { get; set; }
+    protected override void OnInitialized()
+    {
+        if (Guid == default)
+        {
+            Id = "";
+        }
+        else
+        {
+            Id = Guid.ToString();
+        }
+        Selling = false;
+    }
+
+    public int Product
+    {
+        get => _Product;
+        set
+        {
+            _Product = value;
+            this.StateHasChanged();
+        }
+    }
+    public bool Selling
+    {
+        get => _Selling;
+        set
+        {
+            _Selling = value;
+            this.StateHasChanged();
+        }
+    }
+
+
+    private int _Product;
+    private bool _Selling;
+
+    async Task Sell()
+    {
+        Selling = true;
+        var channel = new Channel("localhost", 12345, ChannelCredentials.Insecure);
+        var client = MagicOnionClient.Create<IDebugUIHardwareBoxService>(channel);
+        var sold = await client.Sell(Id, Product);
+        _Selling = false;
+    }
+
+
+}
+@if (!Selling)
+{
+    <MatCard class="demo-mat-card mat-elevation-z24">
+        <MatCardContent>
+            <div class="demo-mat-card-content">
+                <MatHeadline6 class="demo-mat-card-clean-margin">
+                    What item to serve?
+                </MatHeadline6>
+            </div>
+
+            <MatTextField @bind-Value="@Id" Label="At which node (GUID)"></MatTextField>
+            <MatNumericUpDownField Label="Item Number"
+                                   @bind-Value=@Product
+                                   FieldType="MatNumericUpDownFieldType.Numeric"
+                                   DecimalPlaces=0
+                                   Maximum="100"
+                                   Minimum="0">
+            </MatNumericUpDownField>
+        </MatCardContent>
+        <MatCardActions>
+            <MatButton class="btn btn-primary" @onclick="Sell">Buy Item!</MatButton>
+        </MatCardActions>
+    </MatCard>
+}
+else
+{
+    <MatCard class="demo-mat-card mat-elevation-z24">
+        <MatCardContent>
+            <div class="demo-mat-card-content">
+                <MatHeadline6 class="demo-mat-card-clean-margin">
+                    Initializing item sell...
+                </MatHeadline6>
+            </div>
+        </MatCardContent>
+    </MatCard>
+}
